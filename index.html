@@ -269,18 +269,26 @@
     filter:blur(6px);
   }
   .cup-float{
+    display:block;
+    width:100%;
+    max-width:300px;
+    height:auto;
     position:relative;
-    animation:cupFloat 5s ease-in-out infinite;
+    animation:cupFloat 5s ease-in-out infinite 1.3s;
     filter:drop-shadow(0 30px 40px rgba(20,10,10,0.45));
   }
   @keyframes cupFloat{0%,100%{transform:translateY(0px) rotate(-1.5deg);} 50%{transform:translateY(-18px) rotate(1.5deg);}}
-  .steam{transform-origin:bottom center; animation:steamRise 4s ease-in-out infinite;}
-  .steam.s2{animation-delay:.7s;}
-  .steam.s3{animation-delay:1.4s;}
-  @keyframes steamRise{
-    0%{opacity:0; transform:translateY(0) scaleY(0.7);}
-    30%{opacity:.55;}
-    100%{opacity:0; transform:translateY(-38px) scaleY(1.3);}
+
+  /* Animasi masuk: zoom in besar -> zoom out mengecil ke ukuran normal, sambil sedikit goyang */
+  .cup-pop{
+    animation:cupPop 1.5s cubic-bezier(.25,1.4,.4,1) both;
+  }
+  @keyframes cupPop{
+    0%{ transform:scale(1.7) rotate(-6deg); opacity:0; filter:blur(3px);}
+    40%{ opacity:1; filter:blur(0);}
+    62%{ transform:scale(0.92) rotate(3deg);}
+    80%{ transform:scale(1.06) rotate(-2deg);}
+    100%{ transform:scale(1) rotate(0deg); opacity:1; filter:blur(0);}
   }
 
   /* ============ SECTION HEADINGS (shared) ============ */
@@ -560,21 +568,9 @@
 
       <div class="cup-stage reveal in">
         <div class="cup-glow"></div>
-        <svg class="cup-float" width="240" height="340" viewBox="0 0 240 340" fill="none">
-          <ellipse class="steam" cx="120" cy="30" rx="4" ry="20" fill="rgba(255,255,255,0.5)"/>
-          <ellipse class="steam s2" cx="105" cy="34" rx="3.5" ry="16" fill="rgba(255,255,255,0.4)"/>
-          <ellipse class="steam s3" cx="136" cy="34" rx="3.5" ry="16" fill="rgba(255,255,255,0.4)"/>
-          <path d="M50 78 H190 L172 300 Q170 316 154 316 H86 Q70 316 68 300 Z" fill="#FBF3E5" opacity="0.95"/>
-          <path d="M60 90 H180 L166 285 Q164 298 152 298 H88 Q76 298 74 285 Z" fill="#3B2313"/>
-          <path d="M60 90 H180 L177 112 H63 Z" fill="#D9B48C"/>
-          <rect x="63" y="112" width="114" height="14" fill="#C1573B" opacity="0.55"/>
-          <rect x="112" y="20" width="10" height="80" rx="5" fill="#E8934A"/>
-          <path d="M42 96 Q20 130 46 158" stroke="#F0B863" stroke-width="10" stroke-linecap="round" fill="none"/>
-          <circle cx="90" cy="150" r="9" fill="#FBF3E5" opacity="0.5"/>
-          <circle cx="120" cy="175" r="7" fill="#FBF3E5" opacity="0.4"/>
-          <circle cx="145" cy="140" r="8" fill="#FBF3E5" opacity="0.45"/>
-          <circle cx="100" cy="210" r="7" fill="#FBF3E5" opacity="0.35"/>
-        </svg>
+        <div class="cup-pop">
+          <img class="cup-float" src="hero-cup.png" alt="Iced Caramel Latte Kopi Senja">
+        </div>
       </div>
     </div>
   </div>

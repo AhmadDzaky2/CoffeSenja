@@ -273,14 +273,32 @@
   .receipt-total{display:flex; justify-content:space-between; align-items:center; margin-top:14px;}
   .receipt-total span:first-child{font-weight:700;}
   .receipt-total .amount{font-family:'Fraunces', serif; font-weight:800; font-size:22px; color:var(--terracotta);}
+  .receipt-actions{display:flex; gap:10px; margin-top:22px;}
   .btn-close-receipt{
-    margin-top:22px;
-    width:100%;
+    flex:1;
     padding:14px;
     border-radius:100px;
     background:var(--coffee-dark);
     color:var(--cream);
-    font-weight:700; font-size:14px;
+    font-weight:700; font-size:13.5px;
+  }
+  .btn-print-receipt{
+    flex:1;
+    padding:14px;
+    border-radius:100px;
+    background:#fff;
+    border:1.5px solid var(--line);
+    color:var(--coffee-dark);
+    font-weight:700; font-size:13.5px;
+  }
+  .btn-print-receipt:hover{border-color:var(--terracotta);}
+
+  @media print{
+    body *{visibility:hidden;}
+    #overlay.show, #overlay.show .receipt, #overlay.show .receipt *{visibility:visible;}
+    #overlay.show{position:absolute; inset:0; background:#fff; padding:0;}
+    #overlay.show .receipt{box-shadow:none; max-height:none;}
+    .receipt-actions{display:none;}
   }
 
   /* ============ LAYAR PEMBAYARAN QRIS ============ */
@@ -336,8 +354,8 @@
 
 <div class="topbar">
   <div class="wrap">
-    <a href="kopi-senja.html" class="back-link">← Kembali ke Menu</a>
-    <a href="kopi-senja.html" class="logo">KOPI<span>Senja</span></a>
+    <a href="index.html" class="back-link">← Kembali ke Menu</a>
+    <a href="index.html" class="logo">KOPI<span>Senja</span></a>
   </div>
   <div class="wrap topbar-title">
     <span class="eyebrow">Konfirmasi Pesanan</span>
@@ -357,9 +375,29 @@
     </div>
   </div>
 
-  <!-- STEP 2: MEJA -->
+  <!-- STEP 2: METODE PENGAMBILAN -->
   <div class="card">
-    <h2><span class="step-num">2</span> Pilih Tempat Duduk</h2>
+    <h2><span class="step-num">2</span> Metode Pengambilan</h2>
+    <p class="sub">Mau langsung dinikmati di kafe, atau dibungkus dibawa pulang?</p>
+    <div class="pay-grid">
+      <div class="pay-option" id="typeDineIn" data-type="dinein">
+        <div class="pay-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 0-5 5v3.5a2.5 2.5 0 0 0 5 0V2z"/></svg>
+        </div>
+        <div><h4>Dine In</h4><p>Nikmati langsung di kafe</p></div>
+      </div>
+      <div class="pay-option" id="typeTakeAway" data-type="takeaway">
+        <div class="pay-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div><h4>Take Away</h4><p>Dibungkus, bawa pulang</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: MEJA (hanya muncul untuk Dine In) -->
+  <div class="card" id="tableCard" style="display:none;">
+    <h2><span class="step-num">3</span> Pilih Tempat Duduk</h2>
     <p class="sub">Tap nomor meja yang tersedia. Meja bertanda ✕ merah sedang ditempati.</p>
     <div class="table-legend">
       <span class="legend-item"><span class="legend-dot avail"></span> Tersedia</span>
@@ -369,19 +407,23 @@
     <div class="table-grid" id="tableGrid"></div>
   </div>
 
-  <!-- STEP 3: PESANAN -->
+  <!-- STEP 4: PESANAN -->
   <div class="card">
-    <h2><span class="step-num">3</span> Pesanan Anda</h2>
+    <h2><span class="step-num">4</span> Pesanan Anda</h2>
     <p class="sub">Atur jumlah setiap minuman yang ingin dipesan.</p>
     <div class="order-list" id="orderList"></div>
   </div>
 
-  <!-- STEP 4: RINGKASAN -->
+  <!-- STEP 5: RINGKASAN -->
   <div class="card">
-    <h2><span class="step-num">4</span> Ringkasan & Total</h2>
+    <h2><span class="step-num">5</span> Ringkasan & Total</h2>
     <p class="sub">Cek kembali sebelum melanjutkan ke pembayaran.</p>
     <div class="summary-rows" id="summaryRows">
       <div class="summary-row empty">Belum ada pesanan dipilih.</div>
+    </div>
+    <div class="summary-total" id="estimateRow" style="display:none; border-top:none; margin-top:4px; padding-top:0;">
+      <span style="font-size:13.5px; font-weight:600; color:rgba(42,24,16,0.65);">⏱ Estimasi Penyajian</span>
+      <span style="font-family:'Space Mono', monospace; font-weight:700; font-size:14px; color:var(--coffee-dark);">~<span id="estimateMin">0</span> menit</span>
     </div>
     <div class="summary-total">
       <span>Total Bayar</span>
@@ -389,9 +431,9 @@
     </div>
   </div>
 
-  <!-- STEP 5: PEMBAYARAN -->
+  <!-- STEP 6: PEMBAYARAN -->
   <div class="card">
-    <h2><span class="step-num">5</span> Metode Pembayaran</h2>
+    <h2><span class="step-num">6</span> Metode Pembayaran</h2>
     <p class="sub">Pilih cara pembayaran yang kamu inginkan.</p>
     <div class="pay-grid">
       <div class="pay-option" id="payCash" data-method="cash">
@@ -469,25 +511,29 @@
     <div class="order-no" id="orderNo">#KS-000000</div>
     <div class="receipt-table">
       <div class="receipt-row"><span>Nama</span><span id="rName">-</span></div>
-      <div class="receipt-row"><span>Meja</span><span id="rTable">-</span></div>
+      <div class="receipt-row"><span>Tipe Pesanan</span><span id="rType">-</span></div>
       <div class="receipt-row"><span>Pembayaran</span><span id="rMethod">-</span></div>
+      <div class="receipt-row"><span>Estimasi Selesai</span><span id="rEstimate">-</span></div>
       <div class="receipt-items" id="rItems"></div>
       <div class="receipt-row b" style="border-top:1px solid var(--line); padding-top:10px;"><span>Total</span><span id="rTotal">Rp 0</span></div>
     </div>
     <p style="font-size:13px; color:rgba(42,24,16,0.6);">Tunjukkan halaman ini ke kasir kami untuk mengambil pesananmu. Selamat menikmati senja! ☕</p>
-    <button class="btn-close-receipt" id="btnCloseReceipt">Kembali ke Beranda</button>
+    <div class="receipt-actions">
+      <button class="btn-close-receipt" id="btnCloseReceipt">Kembali ke Beranda</button>
+      <button class="btn-print-receipt" id="btnPrintReceipt">🖨️ Cetak / Simpan</button>
+    </div>
   </div>
 </div>
 
 <script>
   /* ============ DATA MENU (harus selaras dengan urutan kartu di halaman utama) ============ */
   const MENU = [
-    { name:"Iced Caramel Latte",      price:25000 },
-    { name:"Latte Art Senja",         price:22000 },
-    { name:"Es Kopi Susu Kocok",      price:20000 },
-    { name:"Creamy Avocado Coffee",   price:23000 },
-    { name:"Frappe Cookies & Cream",  price:24000 },
-    { name:"Americano Dingin",        price:18000 },
+    { name:"Iced Caramel Latte",      price:25000, prepMin:4 },
+    { name:"Latte Art Senja",         price:22000, prepMin:5 },
+    { name:"Es Kopi Susu Kocok",      price:20000, prepMin:4 },
+    { name:"Creamy Avocado Coffee",   price:23000, prepMin:6 },
+    { name:"Frappe Cookies & Cream",  price:24000, prepMin:6 },
+    { name:"Americano Dingin",        price:18000, prepMin:3 },
   ];
 
   const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
@@ -496,11 +542,44 @@
   let qty = MENU.map(() => 0);
   let selectedTable = null;
   let paymentMethod = null;
+  let orderType = null; // 'dinein' | 'takeaway'
 
   // pra-isi item dari klik di halaman utama (?item=IDX)
   const params = new URLSearchParams(window.location.search);
   const preselect = parseInt(params.get('item'));
   if(!isNaN(preselect) && MENU[preselect]) qty[preselect] = 1;
+
+  /* ============ METODE PENGAMBILAN ============ */
+  const typeDineIn = document.getElementById('typeDineIn');
+  const typeTakeAway = document.getElementById('typeTakeAway');
+  const tableCard = document.getElementById('tableCard');
+
+  function selectOrderType(type){
+    orderType = type;
+    typeDineIn.classList.toggle('selected', type === 'dinein');
+    typeTakeAway.classList.toggle('selected', type === 'takeaway');
+
+    if(type === 'dinein'){
+      tableCard.style.display = 'block';
+    } else {
+      tableCard.style.display = 'none';
+      selectedTable = null; // take away tidak butuh meja
+    }
+    renderTables();
+    validate();
+  }
+  typeDineIn.addEventListener('click', () => selectOrderType('dinein'));
+  typeTakeAway.addEventListener('click', () => selectOrderType('takeaway'));
+
+  /* ============ ESTIMASI WAKTU PENYAJIAN ============ */
+  function computeEstimate(){
+    const items = MENU.map((m,i) => ({...m, qty:qty[i]})).filter(x => x.qty > 0);
+    if(items.length === 0) return 0;
+    const maxPrep = Math.max(...items.map(x => x.prepMin));
+    const totalCups = items.reduce((s,x) => s + x.qty, 0);
+    const extra = Math.max(0, totalCups - 1) * 1.5; // makin banyak cangkir, makin lama antrian barista
+    return Math.round(maxPrep + extra);
+  }
 
   /* ============ MEJA (persisten via localStorage, demo bersama) ============ */
   const TOTAL_TABLES = 12;
@@ -577,6 +656,15 @@
     }
     const total = items.reduce((sum,x) => sum + x.price * x.qty, 0);
     document.getElementById('totalAmount').textContent = fmt(total);
+
+    const estimateRow = document.getElementById('estimateRow');
+    if(items.length === 0){
+      estimateRow.style.display = 'none';
+    } else {
+      estimateRow.style.display = 'flex';
+      document.getElementById('estimateMin').textContent = computeEstimate();
+    }
+
     return total;
   }
 
@@ -607,7 +695,8 @@
 
     let msg = '';
     if(!name) msg = 'Nama pemesan belum diisi.';
-    else if(!selectedTable) msg = 'Pilih meja terlebih dahulu.';
+    else if(!orderType) msg = 'Pilih metode pengambilan (Dine In / Take Away).';
+    else if(orderType === 'dinein' && !selectedTable) msg = 'Pilih meja terlebih dahulu.';
     else if(!hasItems) msg = 'Pilih minimal satu minuman.';
     else if(!paymentMethod) msg = 'Pilih metode pembayaran.';
 
@@ -620,11 +709,19 @@
   /* ============ SUBMIT & STRUK ============ */
   function buildReceipt(){
     const total = renderSummary();
+    const est = computeEstimate();
     const orderId = 'KS-' + Math.floor(100000 + Math.random()*900000);
     document.getElementById('orderNo').textContent = '#' + orderId;
     document.getElementById('rName').textContent = nameInput.value.trim();
-    document.getElementById('rTable').textContent = 'Meja ' + selectedTable;
+    document.getElementById('rType').textContent = orderType === 'dinein'
+      ? ('Dine In — Meja ' + selectedTable)
+      : 'Take Away';
     document.getElementById('rMethod').textContent = paymentMethod === 'cash' ? 'Cash' : 'QRIS';
+
+    const readyTime = new Date(Date.now() + est * 60000);
+    const hh = String(readyTime.getHours()).padStart(2, '0');
+    const mm = String(readyTime.getMinutes()).padStart(2, '0');
+    document.getElementById('rEstimate').textContent = `~${est} menit (± pukul ${hh}:${mm})`;
 
     const items = MENU.map((m,i) => ({...m, qty:qty[i]})).filter(x => x.qty > 0);
     document.getElementById('rItems').innerHTML = items.map(x =>
@@ -632,8 +729,8 @@
     ).join('');
     document.getElementById('rTotal').textContent = fmt(total);
 
-    // tandai meja sebagai terisi
-    if(!occupied.includes(selectedTable)){
+    // tandai meja sebagai terisi (hanya untuk dine in)
+    if(orderType === 'dinein' && selectedTable && !occupied.includes(selectedTable)){
       occupied.push(selectedTable);
       localStorage.setItem('ks_occupied_tables', JSON.stringify(occupied));
     }
@@ -687,7 +784,11 @@
   });
 
   document.getElementById('btnCloseReceipt').addEventListener('click', () => {
-    window.location.href = 'kopi-senja.html';
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('btnPrintReceipt').addEventListener('click', () => {
+    window.print();
   });
 
   /* ============ INIT ============ */
