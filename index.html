@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kopi Senja — Ngopi di Waktu yang Tepat</title>
+<!-- Firebase: untuk notifikasi pop-up status pesanan real-time -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="order-watcher.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -533,6 +538,7 @@
       <a href="#kontak">Kontak</a>
     </nav>
     <div style="display:flex; align-items:center; gap:14px;">
+      <a href="cek-pesanan.html" class="back-link" style="font-size:13px; color:rgba(251,243,229,0.8); padding:8px 16px; border:1px solid rgba(251,243,229,0.25); border-radius:100px; white-space:nowrap;">🔍 Cek Pesanan</a>
       <a href="#menu" class="btn btn-primary nav-cta">Pesan Sekarang</a>
       <button class="burger" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </div>

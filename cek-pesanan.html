@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cek Pesanan — Kopi Senja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Firebase: database real-time -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --cream: #FBF3E5;
+    --cream-soft: #F3E6D1;
+    --coffee-dark: #2A1810;
+    --coffee-deep: #1D110B;
+    --terracotta: #C1573B;
+    --terracotta-soft: #D97C5F;
+    --amber: #E8934A;
+    --gold: #F0B863;
+    --plum: #3B2145;
+    --green: #3E7A4F;
+    --line: rgba(42,24,16,0.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Plus Jakarta Sans', sans-serif;
+    background:var(--cream);
+    color:var(--coffee-dark);
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  h1,h2{font-family:'Fraunces', serif; font-weight:700; letter-spacing:-0.01em;}
+  .wrap{max-width:640px; margin:0 auto; padding:0 24px;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+
+  .topbar{
+    background:linear-gradient(120deg, var(--coffee-deep), var(--plum));
+    padding:26px 0 60px;
+    color:var(--cream);
+  }
+  .topbar .wrap{display:flex; align-items:center; justify-content:space-between;}
+  .back-link{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:14px; font-weight:600;
+    color:rgba(251,243,229,0.85);
+    padding:8px 16px 8px 12px;
+    border:1px solid rgba(251,243,229,0.25);
+    border-radius:100px;
+  }
+  .back-link:hover{border-color:var(--gold); color:var(--gold);}
+  .logo{font-family:'Fraunces', serif; font-weight:700; font-size:19px;}
+  .logo span{color:var(--gold); font-style:italic; font-weight:500;}
+  .topbar-title{margin-top:34px;}
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--gold);
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:''; width:16px; height:1.5px; background:currentColor; display:inline-block;}
+  .topbar h1{font-size:clamp(26px,4vw,34px); margin-top:14px;}
+  .topbar p{margin-top:8px; color:rgba(251,243,229,0.72); font-size:14.5px;}
+
+  .content{margin-top:-40px; position:relative; z-index:5;}
+  .card{
+    background:#fff;
+    border-radius:22px;
+    box-shadow:0 24px 60px -28px rgba(42,24,16,0.35);
+    padding:28px;
+    margin-bottom:20px;
+  }
+  .card h2{font-size:17px; margin-bottom:16px;}
+
+  .search-row{display:flex; gap:10px;}
+  .search-input{
+    flex:1; padding:14px 18px;
+    border:1.5px solid var(--line); border-radius:14px;
+    font-size:14.5px; font-family:'Space Mono', monospace;
+    background:var(--cream);
+  }
+  .search-input:focus{outline:none; border-color:var(--terracotta); background:#fff;}
+  .search-btn{
+    padding:14px 22px; border-radius:14px;
+    background:var(--coffee-dark); color:var(--cream);
+    font-weight:700; font-size:14px; white-space:nowrap;
+  }
+  .search-btn:hover{background:var(--terracotta);}
+  .search-hint{font-size:12.5px; color:rgba(42,24,16,0.5); margin-top:10px;}
+  .search-error{font-size:13px; color:var(--terracotta); font-weight:600; margin-top:12px; display:none;}
+
+  .my-orders-list{display:flex; flex-direction:column; gap:10px;}
+  .mini-order{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 16px;
+    border:1.5px solid var(--line); border-radius:14px;
+    background:var(--cream);
+    transition:border-color .2s ease;
+  }
+  .mini-order:hover{border-color:var(--terracotta-soft);}
+  .mini-order .mid{font-family:'Space Mono', monospace; font-size:13px; font-weight:700;}
+  .mini-order .mtime{font-size:11.5px; color:rgba(42,24,16,0.5); margin-top:2px;}
+  .mini-order .marrow{font-size:16px; color:var(--terracotta);}
+  .no-orders{font-size:13.5px; color:rgba(42,24,16,0.45); text-align:center; padding:20px 0;}
+
+  #resultCard{display:none;}
+  .status-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 18px; border-radius:100px;
+    background:var(--amber); color:#fff;
+    font-size:13px; font-weight:700;
+    margin-bottom:18px;
+    transition:background .35s ease;
+  }
+  .order-no{font-family:'Space Mono', monospace; font-size:12px; color:rgba(42,24,16,0.5); margin-bottom:6px;}
+  .receipt-table{width:100%; text-align:left; border-top:1.5px dashed var(--line); border-bottom:1.5px dashed var(--line); padding:16px 0; margin:14px 0;}
+  .receipt-row{display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0; color:rgba(42,24,16,0.75);}
+  .receipt-row.b{font-weight:700; color:var(--coffee-dark);}
+  .receipt-items{margin:10px 0; padding:10px 0; border-top:1px solid var(--line);}
+  .receipt-total{display:flex; justify-content:space-between; align-items:center; margin-top:6px;}
+  .receipt-total span:first-child{font-weight:700;}
+  .receipt-total .amount{font-family:'Fraunces', serif; font-weight:800; font-size:22px; color:var(--terracotta);}
+  .btn-print{
+    width:100%; margin-top:18px; padding:14px; border-radius:100px;
+    background:#fff; border:1.5px solid var(--line); color:var(--coffee-dark);
+    font-weight:700; font-size:13.5px;
+  }
+  .btn-print:hover{border-color:var(--terracotta);}
+
+  @media print{
+    body *{visibility:hidden;}
+    #resultCard.show, #resultCard.show *{visibility:visible;}
+    #resultCard.show{position:absolute; top:0; left:0; right:0; box-shadow:none;}
+    .btn-print{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a href="index.html" class="back-link">← Kembali ke Menu</a>
+    <a href="index.html" class="logo">KOPI<span>Senja</span></a>
+  </div>
+  <div class="wrap topbar-title">
+    <span class="eyebrow">Lacak Pesanan</span>
+    <h1>Cek Pesanan Kamu</h1>
+    <p>Lupa screenshot struk? Tenang, cari lagi pakai nomor pesananmu di sini.</p>
+  </div>
+</div>
+
+<div class="content wrap">
+
+  <div class="card">
+    <h2>🔍 Cari Nomor Pesanan</h2>
+    <div class="search-row">
+      <input type="text" class="search-input" id="searchInput" placeholder="Contoh: KS-12345678">
+      <button class="search-btn" id="searchBtn">Cari</button>
+    </div>
+    <div class="search-hint">Nomor pesanan ada di struk kamu, formatnya diawali "KS-".</div>
+    <div class="search-error" id="searchError"></div>
+  </div>
+
+  <div class="card" id="myOrdersCard">
+    <h2>📱 Pesanan Kamu di Perangkat Ini</h2>
+    <div class="my-orders-list" id="myOrdersList">
+      <div class="no-orders">Belum ada riwayat pesanan di perangkat ini.</div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard">
+    <div class="order-no" id="rOrderNo">#KS-000000</div>
+    <div class="status-badge" id="statusBadge">⏳ Menunggu Diproses</div>
+    <div class="receipt-table">
+      <div class="receipt-row"><span>Nama</span><span id="rName">-</span></div>
+      <div class="receipt-row"><span>Tipe Pesanan</span><span id="rType">-</span></div>
+      <div class="receipt-row"><span>Pembayaran</span><span id="rMethod">-</span></div>
+      <div class="receipt-row"><span>Estimasi Selesai</span><span id="rEstimate">-</span></div>
+      <div class="receipt-items" id="rItems"></div>
+      <div class="receipt-row b" style="border-top:1px solid var(--line); padding-top:10px;"><span>Total</span><span id="rTotal">Rp 0</span></div>
+    </div>
+    <button class="btn-print" id="btnPrint">🖨️ Cetak / Simpan</button>
+  </div>
+
+</div>
+
+<script>
+  const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
+  const STORAGE_KEY = 'ks_my_orders';
+
+  const statusLabels = {
+    pending:    { text:'⏳ Menunggu Diproses', color:'#E8934A' },
+    processing: { text:'☕ Sedang Dibuat',      color:'#C1573B' },
+    ready:      { text:'✅ Siap Diambil!',      color:'#3E7A4F' },
+    done:       { text:'🎉 Selesai',            color:'#2A1810' },
+  };
+
+  let currentUnsubscribe = null;
+
+  function timeAgo(createdAtMs){
+    const diffMin = Math.round((Date.now() - createdAtMs) / 60000);
+    if(diffMin < 1) return 'baru saja';
+    if(diffMin < 60) return `${diffMin} menit lalu`;
+    if(diffMin < 1440) return `${Math.floor(diffMin/60)} jam lalu`;
+    return `${Math.floor(diffMin/1440)} hari lalu`;
+  }
+
+  function getMyOrders(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+
+  function renderMyOrders(){
+    const list = document.getElementById('myOrdersList');
+    const orders = getMyOrders().sort((a,b) => b.createdAt - a.createdAt);
+    if(orders.length === 0){
+      list.innerHTML = '<div class="no-orders">Belum ada riwayat pesanan di perangkat ini.</div>';
+      return;
+    }
+    list.innerHTML = orders.map(o => `
+      <div class="mini-order" data-id="${o.id}">
+        <div>
+          <div class="mid">#${o.id}</div>
+          <div class="mtime">${timeAgo(o.createdAt)}</div>
+        </div>
+        <div class="marrow">→</div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.mini-order').forEach(el => {
+      el.addEventListener('click', () => loadOrder(el.dataset.id));
+    });
+  }
+
+  function showError(msg){
+    const err = document.getElementById('searchError');
+    err.textContent = msg;
+    err.style.display = msg ? 'block' : 'none';
+  }
+
+  async function loadOrder(orderId){
+    orderId = orderId.trim().toUpperCase();
+    if(!orderId){ showError('Masukkan nomor pesanan dulu, ya.'); return; }
+    showError('');
+    document.getElementById('searchBtn').textContent = 'Mencari...';
+
+    try {
+      const doc = await db.collection('orders').doc(orderId).get();
+      if(!doc.exists){
+        showError('Nomor pesanan tidak ditemukan. Cek lagi penulisannya, ya.');
+        document.getElementById('resultCard').classList.remove('show');
+        document.getElementById('resultCard').style.display = 'none';
+        return;
+      }
+      renderReceipt(orderId, doc.data());
+      watchLiveStatus(orderId);
+
+      const url = new URL(window.location);
+      url.searchParams.set('id', orderId);
+      window.history.replaceState({}, '', url);
+
+      document.getElementById('resultCard').scrollIntoView({ behavior:'smooth', block:'start' });
+    } catch(err){
+      console.error(err);
+      showError('Gagal memuat data. Cek koneksi internet kamu.');
+    } finally {
+      document.getElementById('searchBtn').textContent = 'Cari';
+    }
+  }
+
+  function renderReceipt(orderId, data){
+    const card = document.getElementById('resultCard');
+    card.style.display = 'block';
+    card.classList.add('show');
+
+    document.getElementById('rOrderNo').textContent = '#' + orderId;
+    document.getElementById('rName').textContent = data.name || '-';
+    document.getElementById('rType').textContent = data.orderType === 'dinein'
+      ? ('Dine In — Meja ' + data.table)
+      : 'Take Away';
+    document.getElementById('rMethod').textContent = data.paymentMethod === 'cash' ? 'Cash' : 'QRIS';
+
+    if(data.createdAt && data.estimateMin){
+      const created = data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now();
+      const readyTime = new Date(created + data.estimateMin * 60000);
+      const hh = String(readyTime.getHours()).padStart(2, '0');
+      const mm = String(readyTime.getMinutes()).padStart(2, '0');
+      document.getElementById('rEstimate').textContent = `~${data.estimateMin} menit (± pukul ${hh}:${mm})`;
+    } else {
+      document.getElementById('rEstimate').textContent = '-';
+    }
+
+    const items = data.items || [];
+    document.getElementById('rItems').innerHTML = items.map(x =>
+      `<div class="receipt-row"><span>${x.name} × ${x.qty}</span><span>${fmt(x.price*x.qty)}</span></div>`
+    ).join('');
+    document.getElementById('rTotal').textContent = fmt(data.total || 0);
+  }
+
+  function watchLiveStatus(orderId){
+    if(currentUnsubscribe) currentUnsubscribe();
+    const badge = document.getElementById('statusBadge');
+    currentUnsubscribe = db.collection('orders').doc(orderId).onSnapshot((doc) => {
+      if(!doc.exists) return;
+      const status = doc.data().status || 'pending';
+      const info = statusLabels[status] || statusLabels.pending;
+      badge.textContent = info.text;
+      badge.style.background = info.color;
+    });
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', () => {
+    loadOrder(document.getElementById('searchInput').value);
+  });
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') loadOrder(document.getElementById('searchInput').value);
+  });
+  document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+  /* ============ INIT ============ */
+  renderMyOrders();
+
+  const params = new URLSearchParams(window.location.search);
+  const preId = params.get('id');
+  if(preId){
+    document.getElementById('searchInput').value = preId;
+    loadOrder(preId);
+  }
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) window.location.reload();
+  });
+</script>
+
+</body>
+</html>
