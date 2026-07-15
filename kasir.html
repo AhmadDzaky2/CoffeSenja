@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Kasir — Kopi Senja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Firebase: database real-time -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{
+    --cream: #FBF3E5;
+    --cream-soft: #F3E6D1;
+    --coffee-dark: #2A1810;
+    --coffee-deep: #1D110B;
+    --terracotta: #C1573B;
+    --amber: #E8934A;
+    --gold: #F0B863;
+    --green: #3E7A4F;
+    --line: rgba(42,24,16,0.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Plus Jakarta Sans', sans-serif;
+    background:var(--cream-soft);
+    color:var(--coffee-dark);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2{font-family:'Fraunces', serif; font-weight:700;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+
+  /* ============ PIN GATE ============ */
+  #pinGate{
+    position:fixed; inset:0; z-index:100;
+    background:linear-gradient(135deg, var(--coffee-deep), #3B2145);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .pin-box{
+    background:#fff; border-radius:22px; padding:40px 32px;
+    max-width:340px; width:100%; text-align:center;
+    box-shadow:0 30px 70px rgba(0,0,0,0.4);
+  }
+  .pin-box .icon{font-size:38px; margin-bottom:14px;}
+  .pin-box h1{font-size:21px; margin-bottom:6px;}
+  .pin-box p{font-size:13px; color:rgba(42,24,16,0.6); margin-bottom:22px;}
+  .pin-input{
+    width:100%; padding:14px; text-align:center;
+    font-size:22px; letter-spacing:8px;
+    font-family:'Space Mono', monospace;
+    border:1.5px solid var(--line); border-radius:14px;
+    margin-bottom:14px;
+  }
+  .pin-input:focus{outline:none; border-color:var(--terracotta);}
+  .pin-submit{
+    width:100%; padding:14px; border-radius:100px;
+    background:var(--coffee-dark); color:var(--cream);
+    font-weight:700; font-size:14px;
+  }
+  .pin-error{color:var(--terracotta); font-size:12.5px; margin-top:10px; min-height:16px; font-weight:600;}
+
+  /* ============ DASHBOARD ============ */
+  #dashboard{display:none;}
+  .topbar{
+    background:linear-gradient(120deg, var(--coffee-deep), #3B2145);
+    color:var(--cream);
+    padding:22px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:12px;
+  }
+  .topbar h1{font-size:20px;}
+  .topbar .sub{font-size:12.5px; color:rgba(251,243,229,0.6); margin-top:2px;}
+  .live-dot{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:700; color:var(--gold);
+    font-family:'Space Mono', monospace;
+  }
+  .live-dot::before{
+    content:''; width:8px; height:8px; border-radius:50%;
+    background:#4ADE80; animation:blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+
+  .tabs{
+    display:flex; gap:8px; padding:20px 28px 0;
+  }
+  .tab-btn{
+    padding:10px 20px; border-radius:100px;
+    background:#fff; border:1.5px solid var(--line);
+    font-size:13.5px; font-weight:700; color:rgba(42,24,16,0.55);
+  }
+  .tab-btn.active{background:var(--coffee-dark); color:var(--cream); border-color:var(--coffee-dark);}
+  .tab-count{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:20px; height:20px; padding:0 5px; margin-left:6px;
+    border-radius:100px; background:var(--terracotta); color:#fff;
+    font-size:11px; font-weight:800;
+  }
+
+  .board{
+    padding:20px 28px 60px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+    gap:18px;
+  }
+  .empty-state{
+    grid-column:1/-1;
+    text-align:center; padding:60px 20px;
+    color:rgba(42,24,16,0.4);
+  }
+  .empty-state .icon{font-size:40px; margin-bottom:10px;}
+
+  .order-card{
+    background:#fff; border-radius:18px;
+    padding:20px;
+    box-shadow:0 10px 30px -14px rgba(42,24,16,0.25);
+    border-left:5px solid var(--amber);
+  }
+  .order-card.processing{border-left-color:var(--terracotta);}
+  .order-card.ready{border-left-color:var(--green);}
+  .order-card.done{border-left-color:rgba(42,24,16,0.25); opacity:0.65;}
+
+  .oc-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;}
+  .oc-id{font-family:'Space Mono', monospace; font-size:11.5px; color:rgba(42,24,16,0.45);}
+  .oc-name{font-size:16.5px; font-weight:800; margin-top:2px;}
+  .oc-badge{
+    font-size:11px; font-weight:800; padding:5px 12px; border-radius:100px;
+    color:#fff; white-space:nowrap; flex-shrink:0;
+  }
+  .oc-meta{
+    display:flex; gap:14px; flex-wrap:wrap;
+    font-size:12.5px; color:rgba(42,24,16,0.6);
+    margin-bottom:14px; padding-bottom:14px;
+    border-bottom:1px dashed var(--line);
+  }
+  .oc-meta b{color:var(--coffee-dark);}
+  .oc-items{margin-bottom:14px;}
+  .oc-item-row{display:flex; justify-content:space-between; font-size:13px; padding:3px 0; color:rgba(42,24,16,0.75);}
+  .oc-total{
+    display:flex; justify-content:space-between; align-items:center;
+    font-weight:800; font-size:14.5px;
+    padding-top:10px; border-top:1px dashed var(--line);
+    margin-bottom:16px;
+  }
+  .oc-total .amount{color:var(--terracotta); font-family:'Fraunces', serif; font-size:19px;}
+  .oc-action{
+    width:100%; padding:13px; border-radius:100px;
+    font-weight:800; font-size:13.5px;
+    color:#fff;
+  }
+  .oc-action.processing{background:var(--terracotta);}
+  .oc-action.ready{background:var(--green);}
+  .oc-action:hover{filter:brightness(1.08);}
+  .oc-done-label{
+    text-align:center; font-size:12.5px; font-weight:700;
+    color:rgba(42,24,16,0.45); padding:10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PIN GATE ============ -->
+<div id="pinGate">
+  <div class="pin-box">
+    <div class="icon">🔒</div>
+    <h1>Dashboard Kasir</h1>
+    <p>Masukkan PIN untuk mengakses pesanan masuk.</p>
+    <input type="password" inputmode="numeric" maxlength="8" class="pin-input" id="pinInput" placeholder="••••" autofocus>
+    <button class="pin-submit" id="pinSubmit">Masuk</button>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashboard">
+  <div class="topbar">
+    <div>
+      <h1>☕ Dashboard Kasir</h1>
+      <div class="sub">Kopi Senja — pesanan masuk real-time</div>
+    </div>
+    <span class="live-dot">LIVE</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="active">Pesanan Aktif <span class="tab-count" id="countActive">0</span></button>
+    <button class="tab-btn" data-tab="done">Riwayat Selesai</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="empty-state"><div class="icon">📭</div>Belum ada pesanan masuk.</div>
+  </div>
+</div>
+
+<script>
+  /* ============ PIN GATE ============ */
+  const pinGate = document.getElementById('pinGate');
+  const dashboard = document.getElementById('dashboard');
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+
+  function tryUnlock(){
+    if(pinInput.value === KASIR_PIN){
+      pinGate.style.display = 'none';
+      dashboard.style.display = 'block';
+      startListening();
+    } else {
+      pinError.textContent = 'PIN salah, coba lagi.';
+      pinInput.value = '';
+      pinInput.focus();
+    }
+  }
+  document.getElementById('pinSubmit').addEventListener('click', tryUnlock);
+  pinInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') tryUnlock(); });
+
+  /* ============ DATA STATE ============ */
+  const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
+  let allOrders = [];
+  let activeTab = 'active';
+
+  const statusInfo = {
+    pending:    { label:'Menunggu',      badgeColor:'#E8934A', action:'Mulai Diproses',    next:'processing' },
+    processing: { label:'Sedang Dibuat', badgeColor:'#C1573B', action:'Tandai Siap Diambil', next:'ready' },
+    ready:      { label:'Siap Diambil',  badgeColor:'#3E7A4F', action:'Selesai / Diambil', next:'done' },
+    done:       { label:'Selesai',       badgeColor:'#8a7c72', action:null, next:null },
+  };
+
+  function timeAgo(ts){
+    if(!ts) return '-';
+    const diffMin = Math.round((Date.now() - ts.toMillis()) / 60000);
+    if(diffMin < 1) return 'baru saja';
+    if(diffMin < 60) return `${diffMin} menit lalu`;
+    return `${Math.floor(diffMin/60)} jam lalu`;
+  }
+
+  function renderBoard(){
+    const board = document.getElementById('board');
+    const filtered = allOrders.filter(o =>
+      activeTab === 'active' ? o.status !== 'done' : o.status === 'done'
+    );
+
+    document.getElementById('countActive').textContent =
+      allOrders.filter(o => o.status !== 'done').length;
+
+    if(filtered.length === 0){
+      board.innerHTML = `<div class="empty-state"><div class="icon">📭</div>${activeTab === 'active' ? 'Belum ada pesanan aktif.' : 'Belum ada riwayat pesanan selesai.'}</div>`;
+      return;
+    }
+
+    board.innerHTML = filtered.map(o => {
+      const info = statusInfo[o.status] || statusInfo.pending;
+      const itemsHtml = (o.items || []).map(it =>
+        `<div class="oc-item-row"><span>${it.name} × ${it.qty}</span><span>${fmt(it.price * it.qty)}</span></div>`
+      ).join('');
+      const typeLabel = o.orderType === 'dinein' ? `Dine In · Meja ${o.table}` : 'Take Away';
+
+      const actionHtml = info.action
+        ? `<button class="oc-action ${o.status === 'pending' ? 'processing' : 'ready'}" data-id="${o.id}" data-next="${info.next}">${info.action}</button>`
+        : `<div class="oc-done-label">✓ Pesanan sudah selesai diambil</div>`;
+
+      return `
+        <div class="order-card ${o.status}">
+          <div class="oc-head">
+            <div>
+              <div class="oc-id">#${o.id}</div>
+              <div class="oc-name">${o.name}</div>
+            </div>
+            <span class="oc-badge" style="background:${info.badgeColor}">${info.label}</span>
+          </div>
+          <div class="oc-meta">
+            <span>${typeLabel}</span>
+            <span><b>${o.paymentMethod === 'cash' ? 'Cash' : 'QRIS'}</b></span>
+            <span>${timeAgo(o.createdAt)}</span>
+          </div>
+          <div class="oc-items">${itemsHtml}</div>
+          <div class="oc-total"><span>Total</span><span class="amount">${fmt(o.total)}</span></div>
+          ${actionHtml}
+        </div>
+      `;
+    }).join('');
+
+    board.querySelectorAll('.oc-action').forEach(btn => {
+      btn.addEventListener('click', () => advanceStatus(btn.dataset.id, btn.dataset.next));
+    });
+  }
+
+  async function advanceStatus(orderId, nextStatus){
+    try {
+      await db.collection('orders').doc(orderId).update({ status: nextStatus });
+
+      // Kalau pesanan selesai & itu Dine In, bebaskan mejanya lagi
+      if(nextStatus === 'done'){
+        const order = allOrders.find(o => o.id === orderId);
+        if(order && order.orderType === 'dinein' && order.table){
+          await db.collection('tables').doc(String(order.table)).set({ occupied:false, orderId:null });
+        }
+      }
+    } catch(err){
+      alert('Gagal update status. Cek koneksi internet kamu.');
+      console.error(err);
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderBoard();
+    });
+  });
+
+  function startListening(){
+    db.collection('orders').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+      allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderBoard();
+    }, (err) => {
+      console.error('Gagal memuat pesanan:', err);
+      document.getElementById('board').innerHTML =
+        '<div class="empty-state">⚠️ Gagal terhubung ke database. Cek konfigurasi Firebase kamu.</div>';
+    });
+  }
+
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) window.location.reload();
+  });
+</script>
+
+</body>
+</html>

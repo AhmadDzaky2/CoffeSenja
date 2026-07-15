@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pesan — Kopi Senja</title>
+<!-- Firebase: database real-time untuk sinkronisasi meja & pesanan -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -265,7 +269,16 @@
     color:#fff; font-size:30px;
   }
   .receipt h2{font-size:22px; margin-bottom:6px;}
-  .receipt .order-no{font-family:'Space Mono', monospace; font-size:12px; color:rgba(42,24,16,0.5); margin-bottom:22px;}
+  .receipt .order-no{font-family:'Space Mono', monospace; font-size:12px; color:rgba(42,24,16,0.5); margin-bottom:14px;}
+  .status-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 18px; border-radius:100px;
+    background:var(--amber); color:#fff;
+    font-size:13px; font-weight:700;
+    margin-bottom:22px;
+    transition:background .35s ease;
+  }
+  .btn-confirm.loading{opacity:0.7; pointer-events:none;}
   .receipt-table{width:100%; text-align:left; border-top:1.5px dashed var(--line); border-bottom:1.5px dashed var(--line); padding:16px 0; margin-bottom:16px;}
   .receipt-row{display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0; color:rgba(42,24,16,0.75);}
   .receipt-row.b{font-weight:700; color:var(--text-dark);}
@@ -509,6 +522,7 @@
     <div class="check">✓</div>
     <h2>Pesanan Diterima!</h2>
     <div class="order-no" id="orderNo">#KS-000000</div>
+    <div class="status-badge" id="statusBadge">⏳ Menunggu Diproses</div>
     <div class="receipt-table">
       <div class="receipt-row"><span>Nama</span><span id="rName">-</span></div>
       <div class="receipt-row"><span>Tipe Pesanan</span><span id="rType">-</span></div>
@@ -581,19 +595,27 @@
     return Math.round(maxPrep + extra);
   }
 
-  /* ============ MEJA (persisten via localStorage, demo bersama) ============ */
+  /* ============ MEJA (real-time via Firestore, tersinkron ke semua device) ============ */
   const TOTAL_TABLES = 12;
-  let occupied = JSON.parse(localStorage.getItem('ks_occupied_tables') || 'null');
-  if(!occupied){
-    occupied = [3, 7, 10]; // contoh meja yang sedang ditempati
-    localStorage.setItem('ks_occupied_tables', JSON.stringify(occupied));
-  }
+  let occupiedMap = {}; // { "1": true/false, "2": true/false, ... }
+  let tablesLoaded = false;
+
+  db.collection('tables').onSnapshot((snapshot) => {
+    snapshot.forEach(doc => {
+      occupiedMap[doc.id] = doc.data().occupied === true;
+    });
+    tablesLoaded = true;
+    renderTables();
+  }, (err) => {
+    console.error('Gagal memuat status meja:', err);
+    warnMsg.textContent = 'Gagal terhubung ke database. Cek konfigurasi Firebase kamu.';
+  });
 
   function renderTables(){
     const grid = document.getElementById('tableGrid');
     grid.innerHTML = '';
     for(let i = 1; i <= TOTAL_TABLES; i++){
-      const isOcc = occupied.includes(i);
+      const isOcc = occupiedMap[String(i)] === true;
       const seat = document.createElement('div');
       seat.className = 'table-seat' + (isOcc ? ' occupied' : '') + (selectedTable === i ? ' selected' : '');
       seat.innerHTML = `<span class="num">${i}</span><span class="lbl">Meja</span>`;
@@ -707,10 +729,27 @@
   nameInput.addEventListener('input', validate);
 
   /* ============ SUBMIT & STRUK ============ */
-  function buildReceipt(){
-    const total = renderSummary();
-    const est = computeEstimate();
-    const orderId = 'KS-' + Math.floor(100000 + Math.random()*900000);
+  let statusUnsubscribe = null;
+  const statusLabels = {
+    pending:    { text:'⏳ Menunggu Diproses', color:'#E8934A' },
+    processing: { text:'☕ Sedang Dibuat',      color:'#C1573B' },
+    ready:      { text:'✅ Siap Diambil!',      color:'#3E7A4F' },
+    done:       { text:'🎉 Selesai',            color:'#2A1810' },
+  };
+
+  function watchOrderStatus(orderId){
+    if(statusUnsubscribe) statusUnsubscribe();
+    const badge = document.getElementById('statusBadge');
+    statusUnsubscribe = db.collection('orders').doc(orderId).onSnapshot((doc) => {
+      if(!doc.exists) return;
+      const status = doc.data().status || 'pending';
+      const info = statusLabels[status] || statusLabels.pending;
+      badge.textContent = info.text;
+      badge.style.background = info.color;
+    });
+  }
+
+  function fillReceipt(orderId, total, est){
     document.getElementById('orderNo').textContent = '#' + orderId;
     document.getElementById('rName').textContent = nameInput.value.trim();
     document.getElementById('rType').textContent = orderType === 'dinein'
@@ -729,13 +768,62 @@
     ).join('');
     document.getElementById('rTotal').textContent = fmt(total);
 
-    // tandai meja sebagai terisi (hanya untuk dine in)
-    if(orderType === 'dinein' && selectedTable && !occupied.includes(selectedTable)){
-      occupied.push(selectedTable);
-      localStorage.setItem('ks_occupied_tables', JSON.stringify(occupied));
-    }
+    document.getElementById('statusBadge').textContent = statusLabels.pending.text;
+    document.getElementById('statusBadge').style.background = statusLabels.pending.color;
 
     document.getElementById('overlay').classList.add('show');
+    watchOrderStatus(orderId);
+  }
+
+  async function finalizeOrder(){
+    const total = renderSummary();
+    const est = computeEstimate();
+    const orderId = 'KS-' + Date.now().toString().slice(-8);
+    const items = MENU.map((m,i) => ({ name:m.name, price:m.price, qty:qty[i] })).filter(x => x.qty > 0);
+
+    btnConfirm.classList.add('loading');
+    btnConfirm.textContent = 'Mengirim pesanan...';
+
+    try {
+      // Kalau Dine In: kunci meja pakai transaction, biar gak bentrok
+      // kalau ada 2 customer pilih meja yang sama di saat bersamaan.
+      if(orderType === 'dinein'){
+        const tableRef = db.collection('tables').doc(String(selectedTable));
+        await db.runTransaction(async (tx) => {
+          const tableDoc = await tx.get(tableRef);
+          if(tableDoc.exists && tableDoc.data().occupied === true){
+            throw new Error('TABLE_TAKEN');
+          }
+          tx.set(tableRef, { occupied:true, orderId });
+        });
+      }
+
+      await db.collection('orders').doc(orderId).set({
+        name: nameInput.value.trim(),
+        orderType,
+        table: orderType === 'dinein' ? selectedTable : null,
+        items,
+        total,
+        paymentMethod,
+        estimateMin: est,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      fillReceipt(orderId, total, est);
+    } catch(err){
+      if(err.message === 'TABLE_TAKEN'){
+        warnMsg.textContent = 'Yah, meja itu baru saja diambil orang lain. Coba pilih meja lain, ya.';
+        selectedTable = null;
+        renderTables();
+      } else {
+        warnMsg.textContent = 'Gagal mengirim pesanan. Cek koneksi internet / konfigurasi Firebase kamu.';
+        console.error(err);
+      }
+    } finally {
+      btnConfirm.classList.remove('loading');
+      btnConfirm.textContent = 'Konfirmasi Pesanan →';
+    }
   }
 
   const qrisPayOverlay = document.getElementById('qrisPayOverlay');
@@ -748,7 +836,7 @@
     if(!ok) return;
 
     if(paymentMethod === 'cash'){
-      buildReceipt();
+      finalizeOrder();
       return;
     }
 
@@ -776,9 +864,9 @@
       stage3.style.display = 'block';
 
       setTimeout(() => {
-        // TAHAP 3 -> tutup, lalu tampilkan struk
+        // TAHAP 3 -> tutup, lalu kirim pesanan & tampilkan struk
         qrisPayOverlay.classList.remove('show');
-        buildReceipt();
+        finalizeOrder();
       }, 1300);
     }, 1700);
   });
