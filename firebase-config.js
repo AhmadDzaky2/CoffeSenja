@@ -27,3 +27,8 @@ const db = firebase.firestore();
    Catatan: ini pengaman ringan (biar customer gak nyasar ke dashboard),
    BUKAN keamanan tingkat tinggi — jangan pakai buat data super sensitif. */
 const KASIR_PIN = "1234";
+
+/* PIN untuk masuk Dashboard Owner (data analitik/pendapatan).
+   Sebaiknya BEDA dari KASIR_PIN, karena ini lebih sensitif
+   (nominal pendapatan) dan cuma buat kamu sendiri. */
+const OWNER_PIN = "9999";

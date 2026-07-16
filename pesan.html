@@ -154,12 +154,12 @@
   /* ---- pesanan ---- */
   .order-list{margin-left:38px; display:flex; flex-direction:column; gap:14px;}
   .order-item{
-    display:flex; align-items:center; gap:16px;
     padding:14px 16px;
     border:1.5px solid var(--line);
     border-radius:16px;
     background:var(--cream);
   }
+  .order-item-top{display:flex; align-items:center; gap:16px;}
   .order-item .info{flex:1; min-width:0;}
   .order-item h4{font-size:15px; font-weight:700; font-family:'Plus Jakarta Sans', sans-serif;}
   .order-item .price-each{font-size:13px; color:rgba(42,24,16,0.55); margin-top:2px;}
@@ -179,6 +179,52 @@
     font-family:'Fraunces', serif; font-weight:700; font-size:15px;
     flex-shrink:0;
   }
+
+  /* ---- kustomisasi minuman ---- */
+  .customize-panel{
+    display:none;
+    margin-top:14px; padding-top:14px;
+    border-top:1px dashed var(--line);
+    flex-direction:column; gap:10px;
+  }
+  .customize-panel.show{display:flex;}
+  .customize-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .customize-row label{font-size:12.5px; font-weight:700; color:rgba(42,24,16,0.6); min-width:82px;}
+  .customize-select{
+    padding:8px 12px; border-radius:10px; border:1.5px solid var(--line);
+    background:#fff; font-size:13px; font-family:inherit; color:var(--text-dark);
+    flex:1; min-width:140px;
+  }
+  .customize-select:focus{outline:none; border-color:var(--terracotta);}
+  .customize-checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-dark);}
+  .customize-checkbox-row input{width:16px; height:16px; accent-color:var(--terracotta);}
+  .customize-note-input{
+    width:100%; padding:9px 12px; border-radius:10px; border:1.5px solid var(--line);
+    background:#fff; font-size:13px; font-family:inherit;
+  }
+  .customize-note-input:focus{outline:none; border-color:var(--terracotta);}
+
+  /* ---- loyalti ---- */
+  .loyalty-box{
+    display:flex; align-items:center; gap:14px;
+    margin:16px 0 0 38px; max-width:380px;
+    padding:14px 16px; border-radius:14px;
+    background:linear-gradient(120deg, var(--cream-soft), var(--cream));
+    border:1.5px solid var(--gold);
+  }
+  .loyalty-icon{font-size:26px; flex-shrink:0;}
+  .loyalty-points{font-family:'Fraunces', serif; font-weight:800; font-size:17px; color:var(--coffee-dark);}
+  .loyalty-sub{font-size:12px; color:rgba(42,24,16,0.55); margin-top:1px;}
+
+  .redeem-box{margin:0 0 16px 38px;}
+  .redeem-label{
+    display:flex; align-items:center; gap:10px;
+    padding:12px 16px; border-radius:14px;
+    background:var(--cream-soft); border:1.5px solid var(--gold);
+    font-size:13.5px; font-weight:600; color:var(--coffee-dark);
+    cursor:pointer;
+  }
+  .redeem-label input{width:17px; height:17px; accent-color:var(--terracotta); flex-shrink:0;}
 
   /* ---- ringkasan ---- */
   .summary-rows{margin-left:38px; display:flex; flex-direction:column; gap:10px;}
@@ -380,12 +426,20 @@
 
 <div class="content wrap">
 
-  <!-- STEP 1: NAMA -->
+  <!-- STEP 1: NAMA & NOMOR HP -->
   <div class="card">
-    <h2><span class="step-num">1</span> Nama Pemesan</h2>
-    <p class="sub">Gunakan nama yang mudah dipanggil saat pesanan siap.</p>
-    <div style="margin-left:38px; max-width:380px;">
-      <input type="text" id="customerName" class="input-field" placeholder="Contoh: Rani Anggraini" maxlength="40">
+    <h2><span class="step-num">1</span> Data Pemesan</h2>
+    <p class="sub">Nomor HP dipakai untuk poin loyalti & memanggil pesanan.</p>
+    <div style="margin-left:38px; max-width:380px; display:flex; flex-direction:column; gap:12px;">
+      <input type="text" id="customerName" class="input-field" placeholder="Nama, contoh: Rani Anggraini" maxlength="40">
+      <input type="tel" id="customerPhone" class="input-field" placeholder="Nomor HP, contoh: 081234567890" maxlength="16">
+    </div>
+    <div class="loyalty-box" id="loyaltyBox" style="display:none;">
+      <div class="loyalty-icon">⭐</div>
+      <div class="loyalty-info">
+        <div class="loyalty-points"><span id="loyaltyPoints">0</span> Poin</div>
+        <div class="loyalty-sub" id="loyaltySub">Kumpulkan 10 poin untuk 1 minuman gratis</div>
+      </div>
     </div>
   </div>
 
@@ -424,7 +478,7 @@
   <!-- STEP 4: PESANAN -->
   <div class="card">
     <h2><span class="step-num">4</span> Pesanan Anda</h2>
-    <p class="sub">Atur jumlah setiap minuman yang ingin dipesan.</p>
+    <p class="sub">Atur jumlah & kustomisasi tiap minuman yang ingin dipesan.</p>
     <div class="order-list" id="orderList"></div>
   </div>
 
@@ -432,6 +486,12 @@
   <div class="card">
     <h2><span class="step-num">5</span> Ringkasan & Total</h2>
     <p class="sub">Cek kembali sebelum melanjutkan ke pembayaran.</p>
+    <div class="redeem-box" id="redeemBox" style="display:none;">
+      <label class="redeem-label">
+        <input type="checkbox" id="redeemCheckbox">
+        <span>🎁 Tukar 10 poin untuk 1 minuman gratis (termurah di pesananmu)</span>
+      </label>
+    </div>
     <div class="summary-rows" id="summaryRows">
       <div class="summary-row empty">Belum ada pesanan dipilih.</div>
     </div>
@@ -555,10 +615,21 @@
   const fmt = (n) => "Rp " + n.toLocaleString("id-ID");
 
   /* ============ STATE ============ */
+  const EXTRA_SHOT_PRICE = 5000;
   let qty = MENU.map(() => 0);
+  let customizations = MENU.map(() => ({ sugar:'normal', extraShot:false, note:'' }));
   let selectedTable = null;
   let paymentMethod = null;
   let orderType = null; // 'dinein' | 'takeaway'
+  let loyaltyPoints = 0;
+
+  function itemLineTotal(i){
+    const extra = customizations[i].extraShot ? EXTRA_SHOT_PRICE : 0;
+    return (MENU[i].price + extra) * qty[i];
+  }
+  function normalizePhone(p){
+    return (p || '').replace(/\D/g, '');
+  }
 
   // pra-isi item dari klik di halaman utama (?item=IDX)
   const params = new URLSearchParams(window.location.search);
@@ -637,19 +708,39 @@
     const list = document.getElementById('orderList');
     list.innerHTML = '';
     MENU.forEach((item, i) => {
+      const c = customizations[i];
       const row = document.createElement('div');
       row.className = 'order-item';
       row.innerHTML = `
-        <div class="info">
-          <h4>${item.name}</h4>
-          <div class="price-each">${fmt(item.price)} / cangkir</div>
+        <div class="order-item-top">
+          <div class="info">
+            <h4>${item.name}</h4>
+            <div class="price-each">${fmt(item.price)} / cangkir</div>
+          </div>
+          <div class="qty-control">
+            <button class="qty-btn" data-act="dec" data-i="${i}">−</button>
+            <span class="qty-val" id="qtyVal${i}">${qty[i]}</span>
+            <button class="qty-btn" data-act="inc" data-i="${i}">+</button>
+          </div>
+          <div class="item-subtotal" id="itemSub${i}">${fmt(itemLineTotal(i))}</div>
         </div>
-        <div class="qty-control">
-          <button class="qty-btn" data-act="dec" data-i="${i}">−</button>
-          <span class="qty-val" id="qtyVal${i}">${qty[i]}</span>
-          <button class="qty-btn" data-act="inc" data-i="${i}">+</button>
+        <div class="customize-panel ${qty[i] > 0 ? 'show' : ''}" id="customize${i}">
+          <div class="customize-row">
+            <label>Level Gula</label>
+            <select class="customize-select" data-i="${i}" data-field="sugar">
+              <option value="normal" ${c.sugar === 'normal' ? 'selected' : ''}>Normal</option>
+              <option value="less" ${c.sugar === 'less' ? 'selected' : ''}>Less Sugar</option>
+              <option value="none" ${c.sugar === 'none' ? 'selected' : ''}>No Sugar</option>
+            </select>
+          </div>
+          <div class="customize-row">
+            <label class="customize-checkbox-row" style="min-width:auto;">
+              <input type="checkbox" data-i="${i}" data-field="extraShot" ${c.extraShot ? 'checked' : ''}>
+              <span>Extra Shot (+${fmt(EXTRA_SHOT_PRICE)}/cangkir)</span>
+            </label>
+          </div>
+          <input type="text" class="customize-note-input" data-i="${i}" data-field="note" placeholder="Catatan (misal: less ice, no whip)" value="${(c.note || '').replace(/"/g,'&quot;')}" maxlength="60">
         </div>
-        <div class="item-subtotal" id="itemSub${i}">${fmt(item.price * qty[i])}</div>
       `;
       list.appendChild(row);
     });
@@ -660,25 +751,75 @@
         if(btn.dataset.act === 'inc') qty[i]++;
         else qty[i] = Math.max(0, qty[i] - 1);
         document.getElementById(`qtyVal${i}`).textContent = qty[i];
-        document.getElementById(`itemSub${i}`).textContent = fmt(MENU[i].price * qty[i]);
+        document.getElementById(`itemSub${i}`).textContent = fmt(itemLineTotal(i));
+        document.getElementById(`customize${i}`).classList.toggle('show', qty[i] > 0);
         renderSummary();
         validate();
       });
     });
+
+    list.querySelectorAll('[data-field="sugar"], [data-field="note"]').forEach(el => {
+      const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, handleCustomizeChange);
+    });
+    list.querySelectorAll('[data-field="extraShot"]').forEach(el => {
+      el.addEventListener('change', handleCustomizeChange);
+    });
+  }
+
+  function handleCustomizeChange(e){
+    const i = parseInt(e.target.dataset.i);
+    const field = e.target.dataset.field;
+    if(field === 'extraShot') customizations[i].extraShot = e.target.checked;
+    else if(field === 'sugar') customizations[i].sugar = e.target.value;
+    else if(field === 'note') customizations[i].note = e.target.value;
+
+    document.getElementById(`itemSub${i}`).textContent = fmt(itemLineTotal(i));
+    renderSummary();
   }
 
   /* ============ RINGKASAN ============ */
   function renderSummary(){
     const rows = document.getElementById('summaryRows');
-    const items = MENU.map((m,i) => ({...m, qty:qty[i]})).filter(x => x.qty > 0);
+    const items = MENU.map((m,i) => ({
+      name:m.name, price:m.price, qty:qty[i],
+      sugar:customizations[i].sugar, extraShot:customizations[i].extraShot,
+      lineTotal:itemLineTotal(i)
+    })).filter(x => x.qty > 0);
+
+    function tagsFor(x){
+      const tags = [];
+      if(x.sugar !== 'normal') tags.push(x.sugar === 'less' ? 'Less Sugar' : 'No Sugar');
+      if(x.extraShot) tags.push('Extra Shot');
+      return tags.length ? ` <span style="opacity:.6; font-size:11.5px;">(${tags.join(', ')})</span>` : '';
+    }
+
     if(items.length === 0){
       rows.innerHTML = '<div class="summary-row empty">Belum ada pesanan dipilih.</div>';
     } else {
       rows.innerHTML = items.map(x =>
-        `<div class="summary-row"><span>${x.name} × ${x.qty}</span><span>${fmt(x.price * x.qty)}</span></div>`
+        `<div class="summary-row"><span>${x.name} × ${x.qty}${tagsFor(x)}</span><span>${fmt(x.lineTotal)}</span></div>`
       ).join('');
     }
-    const total = items.reduce((sum,x) => sum + x.price * x.qty, 0);
+
+    const subtotal = items.reduce((sum,x) => sum + x.lineTotal, 0);
+
+    // Redeem poin loyalti: gratis 1 minuman termurah di pesanan ini
+    const redeemBox = document.getElementById('redeemBox');
+    const redeemCheckbox = document.getElementById('redeemCheckbox');
+    let discount = 0;
+    if(loyaltyPoints >= 10 && items.length > 0){
+      redeemBox.style.display = 'block';
+      if(redeemCheckbox.checked){
+        discount = Math.min(...items.map(x => x.price));
+        rows.innerHTML += `<div class="summary-row" style="color:var(--green); font-weight:700;"><span>🎁 Diskon Poin Loyalti</span><span>-${fmt(discount)}</span></div>`;
+      }
+    } else {
+      redeemBox.style.display = 'none';
+      redeemCheckbox.checked = false;
+    }
+
+    const total = Math.max(0, subtotal - discount);
     document.getElementById('totalAmount').textContent = fmt(total);
 
     const estimateRow = document.getElementById('estimateRow');
@@ -691,6 +832,7 @@
 
     return total;
   }
+  document.getElementById('redeemCheckbox').addEventListener('change', renderSummary);
 
   /* ============ PEMBAYARAN ============ */
   const payCash = document.getElementById('payCash');
@@ -707,18 +849,50 @@
   payCash.addEventListener('click', () => selectPayment('cash'));
   payQris.addEventListener('click', () => selectPayment('qris'));
 
-  /* ============ VALIDASI ============ */
+  /* ============ VALIDASI & LOYALTI ============ */
   const btnConfirm = document.getElementById('btnConfirm');
   const warnMsg = document.getElementById('warnMsg');
   const nameInput = document.getElementById('customerName');
+  const phoneInput = document.getElementById('customerPhone');
+
+  let loyaltyLookupTimeout = null;
+  async function lookupLoyalty(){
+    const phone = normalizePhone(phoneInput.value);
+    const loyaltyBox = document.getElementById('loyaltyBox');
+    if(phone.length < 9){
+      loyaltyBox.style.display = 'none';
+      loyaltyPoints = 0;
+      renderSummary();
+      return;
+    }
+    try {
+      const doc = await db.collection('customers').doc(phone).get();
+      loyaltyPoints = doc.exists ? (doc.data().points || 0) : 0;
+      document.getElementById('loyaltyPoints').textContent = loyaltyPoints;
+      document.getElementById('loyaltySub').textContent = loyaltyPoints >= 10
+        ? 'Poin kamu cukup buat tukar 1 minuman gratis! 🎉'
+        : `Kumpulkan ${10 - loyaltyPoints} poin lagi untuk 1 minuman gratis (1 poin / cangkir)`;
+      loyaltyBox.style.display = 'flex';
+      renderSummary();
+    } catch(err){
+      console.error('Gagal cek poin loyalti:', err);
+    }
+  }
+  phoneInput.addEventListener('input', () => {
+    clearTimeout(loyaltyLookupTimeout);
+    loyaltyLookupTimeout = setTimeout(lookupLoyalty, 500);
+    validate();
+  });
 
   function validate(){
     const total = renderSummary();
     const hasItems = qty.some(q => q > 0);
     const name = nameInput.value.trim();
+    const phone = normalizePhone(phoneInput.value);
 
     let msg = '';
     if(!name) msg = 'Nama pemesan belum diisi.';
+    else if(phone.length < 9) msg = 'Nomor HP belum valid.';
     else if(!orderType) msg = 'Pilih metode pengambilan (Dine In / Take Away).';
     else if(orderType === 'dinein' && !selectedTable) msg = 'Pilih meja terlebih dahulu.';
     else if(!hasItems) msg = 'Pilih minimal satu minuman.';
@@ -765,10 +939,27 @@
     const mm = String(readyTime.getMinutes()).padStart(2, '0');
     document.getElementById('rEstimate').textContent = `~${est} menit (± pukul ${hh}:${mm})`;
 
-    const items = MENU.map((m,i) => ({...m, qty:qty[i]})).filter(x => x.qty > 0);
-    document.getElementById('rItems').innerHTML = items.map(x =>
-      `<div class="receipt-row"><span>${x.name} × ${x.qty}</span><span>${fmt(x.price*x.qty)}</span></div>`
-    ).join('');
+    const items = MENU.map((m,i) => ({
+      name:m.name, price:m.price, qty:qty[i],
+      sugar:customizations[i].sugar, extraShot:customizations[i].extraShot,
+      lineTotal:itemLineTotal(i)
+    })).filter(x => x.qty > 0);
+
+    let itemsHtml = items.map(x => {
+      const tags = [];
+      if(x.sugar !== 'normal') tags.push(x.sugar === 'less' ? 'Less Sugar' : 'No Sugar');
+      if(x.extraShot) tags.push('Extra Shot');
+      const tagText = tags.length ? ` <span style="opacity:.6; font-size:11px;">(${tags.join(', ')})</span>` : '';
+      return `<div class="receipt-row"><span>${x.name} × ${x.qty}${tagText}</span><span>${fmt(x.lineTotal)}</span></div>`;
+    }).join('');
+
+    const redeemChecked = document.getElementById('redeemCheckbox').checked && loyaltyPoints >= 10;
+    if(redeemChecked){
+      const discount = Math.min(...items.map(x => x.price));
+      itemsHtml += `<div class="receipt-row" style="color:var(--green); font-weight:700;"><span>🎁 Diskon Poin Loyalti</span><span>-${fmt(discount)}</span></div>`;
+    }
+
+    document.getElementById('rItems').innerHTML = itemsHtml;
     document.getElementById('rTotal').textContent = fmt(total);
 
     document.getElementById('statusBadge').textContent = statusLabels.pending.text;
@@ -782,7 +973,21 @@
     const total = renderSummary();
     const est = computeEstimate();
     const orderId = 'KS-' + Date.now().toString().slice(-8);
-    const items = MENU.map((m,i) => ({ name:m.name, price:m.price, qty:qty[i] })).filter(x => x.qty > 0);
+    const phone = normalizePhone(phoneInput.value);
+    const redeemChecked = document.getElementById('redeemCheckbox').checked && loyaltyPoints >= 10;
+
+    const items = MENU.map((m,i) => ({
+      name: m.name,
+      price: m.price,
+      qty: qty[i],
+      sugar: customizations[i].sugar,
+      extraShot: customizations[i].extraShot,
+      note: customizations[i].note || '',
+    })).filter(x => x.qty > 0);
+
+    const cupsOrdered = items.reduce((s,x) => s + x.qty, 0);
+    const pointsEarned = cupsOrdered; // 1 poin per cangkir
+    const discount = redeemChecked ? Math.min(...items.map(x => x.price)) : 0;
 
     btnConfirm.classList.add('loading');
     btnConfirm.textContent = 'Mengirim pesanan...';
@@ -803,14 +1008,36 @@
 
       await db.collection('orders').doc(orderId).set({
         name: nameInput.value.trim(),
+        phone,
         orderType,
         table: orderType === 'dinein' ? selectedTable : null,
         items,
         total,
+        discount,
+        redeemedFreeDrink: redeemChecked,
+        pointsEarned,
         paymentMethod,
         estimateMin: est,
         status: 'pending',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Update poin loyalti customer (pakai transaction biar aman dari race condition)
+      const customerRef = db.collection('customers').doc(phone);
+      await db.runTransaction(async (tx) => {
+        const cDoc = await tx.get(customerRef);
+        const prevPoints = cDoc.exists ? (cDoc.data().points || 0) : 0;
+        const prevOrders = cDoc.exists ? (cDoc.data().totalOrders || 0) : 0;
+        const prevSpent = cDoc.exists ? (cDoc.data().totalSpent || 0) : 0;
+        const newPoints = Math.max(0, prevPoints - (redeemChecked ? 10 : 0)) + pointsEarned;
+        tx.set(customerRef, {
+          name: nameInput.value.trim(),
+          phone,
+          points: newPoints,
+          totalOrders: prevOrders + 1,
+          totalSpent: prevSpent + total,
+          lastOrderAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge:true });
       });
 
       fillReceipt(orderId, total, est);
@@ -889,10 +1116,35 @@
   });
 
   /* ============ INIT ============ */
+  // Cek apakah datang dari tombol "Pesan Lagi" di halaman Cek Pesanan
+  try {
+    const repeatRaw = localStorage.getItem('ks_repeat_order');
+    if(repeatRaw){
+      const repeat = JSON.parse(repeatRaw);
+      if(repeat.name) nameInput.value = repeat.name;
+      if(repeat.phone) phoneInput.value = repeat.phone;
+      if(Array.isArray(repeat.items)){
+        repeat.items.forEach(ri => {
+          const idx = MENU.findIndex(m => m.name === ri.name);
+          if(idx !== -1){
+            qty[idx] = ri.qty || 1;
+            customizations[idx] = {
+              sugar: ri.sugar || 'normal',
+              extraShot: !!ri.extraShot,
+              note: ri.note || '',
+            };
+          }
+        });
+      }
+      localStorage.removeItem('ks_repeat_order');
+    }
+  } catch(e){ console.error('Gagal memuat data pesan ulang:', e); }
+
   renderTables();
   renderOrderList();
   renderSummary();
   validate();
+  if(phoneInput.value) lookupLoyalty();
 
   /* Perbaikan: jika halaman ini dipulihkan dari bfcache (misalnya pengguna
      menekan tombol Back/Forward berkali-kali), muat ulang agar state meja

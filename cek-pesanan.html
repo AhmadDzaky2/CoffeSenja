@@ -130,6 +130,12 @@
     font-weight:700; font-size:13.5px;
   }
   .btn-print:hover{border-color:var(--terracotta);}
+  .btn-repeat{
+    width:100%; margin-top:10px; padding:14px; border-radius:100px;
+    background:var(--coffee-dark); color:var(--cream);
+    font-weight:700; font-size:13.5px;
+  }
+  .btn-repeat:hover{background:var(--terracotta);}
 
   @media print{
     body *{visibility:hidden;}
@@ -184,6 +190,7 @@
       <div class="receipt-row b" style="border-top:1px solid var(--line); padding-top:10px;"><span>Total</span><span id="rTotal">Rp 0</span></div>
     </div>
     <button class="btn-print" id="btnPrint">🖨️ Cetak / Simpan</button>
+    <button class="btn-repeat" id="btnRepeat">🔁 Pesan Lagi (item yang sama)</button>
   </div>
 
 </div>
@@ -200,6 +207,7 @@
   };
 
   let currentUnsubscribe = null;
+  let currentOrderData = null;
 
   function timeAgo(createdAtMs){
     const diffMin = Math.round((Date.now() - createdAtMs) / 60000);
@@ -272,6 +280,7 @@
   }
 
   function renderReceipt(orderId, data){
+    currentOrderData = data;
     const card = document.getElementById('resultCard');
     card.style.display = 'block';
     card.classList.add('show');
@@ -294,9 +303,13 @@
     }
 
     const items = data.items || [];
-    document.getElementById('rItems').innerHTML = items.map(x =>
-      `<div class="receipt-row"><span>${x.name} × ${x.qty}</span><span>${fmt(x.price*x.qty)}</span></div>`
-    ).join('');
+    document.getElementById('rItems').innerHTML = items.map(x => {
+      const tags = [];
+      if(x.sugar && x.sugar !== 'normal') tags.push(x.sugar === 'less' ? 'Less Sugar' : 'No Sugar');
+      if(x.extraShot) tags.push('Extra Shot');
+      const tagText = tags.length ? ` <span style="opacity:.6; font-size:11px;">(${tags.join(', ')})</span>` : '';
+      return `<div class="receipt-row"><span>${x.name} × ${x.qty}${tagText}</span><span>${fmt(x.price*x.qty)}</span></div>`;
+    }).join('');
     document.getElementById('rTotal').textContent = fmt(data.total || 0);
   }
 
@@ -319,6 +332,20 @@
     if(e.key === 'Enter') loadOrder(document.getElementById('searchInput').value);
   });
   document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+  document.getElementById('btnRepeat').addEventListener('click', () => {
+    if(!currentOrderData) return;
+    const repeatPayload = {
+      name: currentOrderData.name || '',
+      phone: currentOrderData.phone || '',
+      items: (currentOrderData.items || []).map(x => ({
+        name: x.name, qty: x.qty, sugar: x.sugar || 'normal',
+        extraShot: !!x.extraShot, note: x.note || '',
+      })),
+    };
+    localStorage.setItem('ks_repeat_order', JSON.stringify(repeatPayload));
+    window.location.href = 'pesan.html';
+  });
 
   /* ============ INIT ============ */
   renderMyOrders();
